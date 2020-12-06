@@ -1,3 +1,10 @@
+<?php
+include_once "utilities.php";
+if (isDebugMode()) {
+  ini_set('display_errors','1');
+ //This code uses ini_set() to turn on the display_errors setting, but only when in debug mode
+}
+?>
 <!DOCTYPE HTML>
 <html lang="en">
 <head>
