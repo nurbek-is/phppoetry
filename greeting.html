@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="../../static/styles/normalize.css">
+<link rel="stylesheet" href="../../static/styles/styles.css">
+<title>Greeting</title>
+</head>
+<body>
+<main>
+  <form action="greeting.php" method="get">
+    <label for="last-name">Last Name:</label>
+    <input name="last-name" id="last-name">
+    <fieldset>
+      <legend>Are you left- or right-handed?</legend>
+      <label>
+        <input type="radio" name="dominant-hand" value="left">
+        Left
+      </label>
+      <label>
+        <input type="radio" name="dominant-hand" value="right">
+        Right
+      </label>
+    </fieldset>
+    <button class="wide">Greet User</button>
+  </form>
+</main>
+</body>
+</html>
