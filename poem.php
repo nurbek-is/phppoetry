@@ -1,8 +1,7 @@
 <?php
-    $pageTitle = 'Dancing Dogs in Dungarees';
-    require "includes/header.php";
-?> 
-
+  $pageTitle = 'Dancing Dogs in Dungarees';
+  require 'includes/header.php';
+?>
 <main id="poem">
   <h1>Dancing Dogs in Dungarees</h1>
   <div id="submission-status">
@@ -36,5 +35,5 @@
   </nav>
 </main>
 <?php
-require 'includes/footer.php';
+  require 'includes/footer.php';
 ?>
