@@ -1,7 +1,7 @@
 <?php
   $pageTitle = 'Poems';
   require 'includes/header.php';
-  
+
   $dsn = 'mysql:host=localhost;dbname=poetree';
   $username = 'root';
   $password = 'pwdpwd';
@@ -15,11 +15,21 @@
           ORDER BY p.date_approved DESC";
   $stmt = $db->prepare($query);
   $stmt->execute();
+
+  $qPoemCount = "SELECT COUNT(p.poem_id) AS num
+  FROM poems p
+    JOIN categories c ON c.category_id = p.category_id
+    JOIN users u ON u.user_id = p.user_id
+  WHERE p.date_approved IS NOT NULL";
+
+  $stmtPoemCount = $db->prepare($qPoemCount);
+  $stmtPoemCount->execute();
+  $poemCount = $stmtPoemCount->fetch()['num'];
 ?>
 <main id="poems">
   <h1><?= $pageTitle ?></h1>
   <table>
-    <caption>Total Poems: 8</caption>
+    <caption>Total Poems: <?= $poemCount ?></caption>
     <thead>
       <tr>
         <th>Poem</th>
