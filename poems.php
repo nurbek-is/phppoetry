@@ -1,9 +1,23 @@
-<?php 
-$pageTitle = 'poems';
-require "includes/header.php";
+<?php
+  $pageTitle = 'Poems';
+  require 'includes/header.php';
+  
+  $dsn = 'mysql:host=localhost;dbname=poetree';
+  $username = 'root';
+  $password = 'pwdpwd';
+  $db = new PDO($dsn, $username, $password);
+  $query = "SELECT p.poem_id, p.title, p.date_approved, 
+  c.category, u.username
+          FROM poems p
+          JOIN categories c ON c.category_id = p.category_id
+          JOIN users u ON u.user_id = p.user_id
+          WHERE p.date_approved IS NOT NULL
+          ORDER BY p.date_approved DESC";
+  $stmt = $db->prepare($query);
+  $stmt->execute();
 ?>
 <main id="poems">
-  <h1>Poems</h1>
+  <h1><?= $pageTitle ?></h1>
   <table>
     <caption>Total Poems: 8</caption>
     <thead>
@@ -15,18 +29,22 @@ require "includes/header.php";
       </tr>
     </thead>
     <tbody>
-      <tr class="normal">
-        <td>Carrots and Camels</td>
-        <td>Funny</td>
-        <td>LimerickMan</td>
-        <td>01/11/2019</td>
-      </tr>
-      <tr class="normal">
-        <td><a href="poem.php">Dancing Dogs in Dungarees</a></td>
-        <td>Funny</td>
-        <td>LimerickMan</td>
-        <td>01/11/2019</td>
-      </tr>
+      <?php
+        while ($row = $stmt->fetch()) { 
+          $approved = strtotime($row['date_approved']);
+          $published = date('m/d/Y', $approved);
+      ?>
+        <tr class="normal">
+          <td>
+            <a href="poem.php?poem-id=<?= $row['poem_id'] ?>">
+              <?= $row['title'] ?>
+            </a>
+          </td>
+          <td><?= $row['category'] ?></td>
+          <td><?= $row['username'] ?></td>
+          <td><?= $published ?></td>
+        </tr>
+      <?php } ?>
     </tbody>
     <tfoot class="pagination">
       <tr>
@@ -41,13 +59,8 @@ require "includes/header.php";
     <label for="cat">Category:</label>
     <select name="cat" id="cat">
       <option value="0">All</option>
-      <option value='7' disabled>Celebratory (0)</option>
       <option value='2'>Funny (5)</option>
-      <option value='5' disabled>Nature (0)</option>
-      <option value='8' disabled>Other (0)</option>
-      <option value='6' disabled>Religious (0)</option>
       <option value='1'>Romantic (2)</option>
-      <option value='3' disabled>Scary (0)</option>
       <option value='4'>Serious (1)</option>
     </select>
     <label for="user">Author:</label>
@@ -61,5 +74,5 @@ require "includes/header.php";
   </form>
 </main>
 <?php
-  require "includes/footer.php";
+  require 'includes/footer.php';
 ?>
