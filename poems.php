@@ -1,11 +1,46 @@
 <?php
   $pageTitle = 'Poems';
   require 'includes/header.php';
+
+  $offset = $_GET['offset'] ?? 0;
+  $offset = (int) $offset; //converts it to integer,So we can use === later in the code
+  $rowsToShow = 2;
+  $dsn = 'mysql:host=localhost;dbname=poetree';
+  $username = 'root';
+  $password = 'pwdpwd';
+  $db = new PDO($dsn, $username, $password);
+  $query = "SELECT p.poem_id, p.title, p.date_approved, 
+  c.category, u.username
+          FROM poems p
+          JOIN categories c ON c.category_id = p.category_id
+          JOIN users u ON u.user_id = p.user_id
+          WHERE p.date_approved IS NOT NULL
+          ORDER BY p.date_approved DESC
+          LIMIT $offset, $rowsToShow";
+  $stmt = $db->prepare($query);
+  $stmt->execute();
+
+  $qPoemCount = "SELECT COUNT(p.poem_id) AS num
+  FROM poems p
+    JOIN categories c ON c.category_id = p.category_id
+    JOIN users u ON u.user_id = p.user_id
+  WHERE p.date_approved IS NOT NULL";
+
+  $stmtPoemCount = $db->prepare($qPoemCount);
+  $stmtPoemCount->execute();
+  $poemCount = $stmtPoemCount->fetch()['num'];
+
+  $prevOffset = max($offset - $rowsToShow, 0);
+  $nextOffset = $offset + $rowsToShow;
+
+  $href = "poems.php?"; 
+  $prev = $href . "offset=$prevOffset";
+  $next = $href . "offset=$nextOffset";
 ?>
 <main id="poems">
   <h1><?= $pageTitle ?></h1>
   <table>
-    <caption>Total Poems: 8</caption>
+    <caption>Total Poems: <?= $poemCount ?></caption>
     <thead>
       <tr>
         <th>Poem</th>
@@ -15,24 +50,40 @@
       </tr>
     </thead>
     <tbody>
-      <tr class="normal">
-        <td>Carrots and Camels</td>
-        <td>Funny</td>
-        <td>LimerickMan</td>
-        <td>01/11/2019</td>
-      </tr>
-      <tr class="normal">
-        <td><a href="poem.php">Dancing Dogs in Dungarees</a></td>
-        <td>Funny</td>
-        <td>LimerickMan</td>
-        <td>01/11/2019</td>
-      </tr>
+      <?php
+        while ($row = $stmt->fetch()) { 
+          $approved = strtotime($row['date_approved']);
+          $published = date('m/d/Y', $approved);
+      ?>
+        <tr class="normal">
+          <td>
+            <a href="poem.php?poem-id=<?= $row['poem_id'] ?>">
+              <?= $row['title'] ?>
+            </a>
+          </td>
+          <td><?= $row['category'] ?></td>
+          <td><?= $row['username'] ?></td>
+          <td><?= $published ?></td>
+        </tr>
+      <?php } ?>
     </tbody>
     <tfoot class="pagination">
       <tr>
-        <td>Previous</td>
+        <?php 
+          if ($offset === 0) {
+            echo "<td class='disabled'>Previous</td>";
+          } else {
+            echo "<td><a href='$prev'>Previous</a></td>";
+          }
+        ?>
         <td colspan="2"></td>
-        <td>Next</td>
+        <?php 
+          if ($nextOffset >= $poemCount) {
+            echo "<td class='disabled'>Next</td>";
+          } else {
+            echo "<td><a href='$next'>Next</a></td>";
+          }
+        ?>
       </tr>
     </tfoot>
   </table>
