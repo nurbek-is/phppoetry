@@ -1,35 +1,11 @@
 <?php
   $pageTitle = 'Poems';
   require 'includes/header.php';
-
-  $dsn = 'mysql:host=localhost;dbname=poetree';
-  $username = 'root';
-  $password = 'pwdpwd';
-  $db = new PDO($dsn, $username, $password);
-  $query = "SELECT p.poem_id, p.title, p.date_approved, 
-  c.category, u.username
-          FROM poems p
-          JOIN categories c ON c.category_id = p.category_id
-          JOIN users u ON u.user_id = p.user_id
-          WHERE p.date_approved IS NOT NULL
-          ORDER BY p.date_approved DESC";
-  $stmt = $db->prepare($query);
-  $stmt->execute();
-
-  $qPoemCount = "SELECT COUNT(p.poem_id) AS num
-  FROM poems p
-    JOIN categories c ON c.category_id = p.category_id
-    JOIN users u ON u.user_id = p.user_id
-  WHERE p.date_approved IS NOT NULL";
-
-  $stmtPoemCount = $db->prepare($qPoemCount);
-  $stmtPoemCount->execute();
-  $poemCount = $stmtPoemCount->fetch()['num'];
 ?>
 <main id="poems">
   <h1><?= $pageTitle ?></h1>
   <table>
-    <caption>Total Poems: <?= $poemCount ?></caption>
+    <caption>Total Poems: 8</caption>
     <thead>
       <tr>
         <th>Poem</th>
@@ -39,22 +15,18 @@
       </tr>
     </thead>
     <tbody>
-      <?php
-        while ($row = $stmt->fetch()) { 
-          $approved = strtotime($row['date_approved']);
-          $published = date('m/d/Y', $approved);
-      ?>
-        <tr class="normal">
-          <td>
-            <a href="poem.php?poem-id=<?= $row['poem_id'] ?>">
-              <?= $row['title'] ?>
-            </a>
-          </td>
-          <td><?= $row['category'] ?></td>
-          <td><?= $row['username'] ?></td>
-          <td><?= $published ?></td>
-        </tr>
-      <?php } ?>
+      <tr class="normal">
+        <td>Carrots and Camels</td>
+        <td>Funny</td>
+        <td>LimerickMan</td>
+        <td>01/11/2019</td>
+      </tr>
+      <tr class="normal">
+        <td><a href="poem.php">Dancing Dogs in Dungarees</a></td>
+        <td>Funny</td>
+        <td>LimerickMan</td>
+        <td>01/11/2019</td>
+      </tr>
     </tbody>
     <tfoot class="pagination">
       <tr>
