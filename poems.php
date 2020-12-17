@@ -1,10 +1,23 @@
 <?php
   $pageTitle = 'Poems';
   require 'includes/header.php';
+  // Set defaults for $order and $dir
+  $order = $_GET['order'] ?? 'date_approved';
+  $dir = $_GET['dir'] ?? 'desc';
+  //8 lines below(including if stmnt-!in_array) is just extra step,if someone messes with querystring 
+  // and types in some string in $order or $dir fields, it won't mess the page
+  $orderAllowed=['title','category','username','date_approved'];
+  $dirAllowed=['asc','desc'];
+  if(!in_array($order, $orderAllowed)) {
+    $order = 'date_approved';
+  }
+  if(!in_array($dir,$dirAllowed)) {
+    $dir = 'asc';
+  }
 
   $offset = $_GET['offset'] ?? 0;
   $offset = (int) $offset; //converts it to integer,So we can use === later in the code
-  $rowsToShow = 2;
+  $rowsToShow = 5;
   $dsn = 'mysql:host=localhost;dbname=poetree';
   $username = 'root';
   $password = 'pwdpwd';
@@ -15,7 +28,7 @@
           JOIN categories c ON c.category_id = p.category_id
           JOIN users u ON u.user_id = p.user_id
           WHERE p.date_approved IS NOT NULL
-          ORDER BY p.date_approved DESC
+          ORDER BY $order $dir 
           LIMIT $offset, $rowsToShow";
   $stmt = $db->prepare($query);
   $stmt->execute();
@@ -34,8 +47,35 @@
   $nextOffset = $offset + $rowsToShow;
 
   $href = "poems.php?"; 
-  $prev = $href . "offset=$prevOffset";
-  $next = $href . "offset=$nextOffset";
+  $prev = $href . "offset=$prevOffset&order=$order&dir=$dir";
+  $next = $href . "offset=$nextOffset&order=$order&dir=$dir";
+
+  /*CONSTRUCT THE LINKS FOR THE HEADERS */
+  //Default all directions to ascending
+  $dirTitle = 'asc';
+  $dirCategory = 'asc';
+  $dirUsername = 'asc';
+  $dirPublished = 'asc';
+  if($dir ==='asc') {
+    switch ($order) {
+      case 'title':
+        $dirTitle = 'desc';
+        break;
+      case 'category':
+        $dirCategory= 'desc';
+        break;
+      case  'username':
+        $dirUsername = 'desc';
+        break;
+      case 'date_approved':
+        $dirPublished = 'desc';
+        break;  
+    }
+  }
+  $titleLink = $href . "order=title&dir=$dirTitle";//poems.php?order=title&dir=asc
+  $categoryLink = $href . "order=category&dir=$dirCategory";
+  $usernameLink = $href . "order=username&dir=$dirUsername";
+  $publishedLink = $href . "order=date_approved&dir=$dirPublished";
 ?>
 <main id="poems">
   <h1><?= $pageTitle ?></h1>
@@ -43,10 +83,18 @@
     <caption>Total Poems: <?= $poemCount ?></caption>
     <thead>
       <tr>
-        <th>Poem</th>
-        <th>Category</th>
-        <th>Author</th>
-        <th>Published</th>
+        <th>
+          <a href="<?=$titleLink ?>">Poems</a>
+        </th>
+        <th>
+          <a href="<?=$categoryLink ?>">Category</a>
+        </th>
+        <th>
+          <a href="<?=$usernameLink ?>">Author</a>
+        </th>
+        <th>
+          <a href="<?=$publishedLink ?>">Published</a>
+        </th>
       </tr>
     </thead>
     <tbody>
