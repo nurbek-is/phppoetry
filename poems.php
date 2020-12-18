@@ -1,23 +1,27 @@
 <?php
   $pageTitle = 'Poems';
   require 'includes/header.php';
-  // Set defaults for $order and $dir
+
+  $offset = $_GET['offset'] ?? 0;
+  $offset = (int) $offset;
+  $rowsToShow = 2;
   $order = $_GET['order'] ?? 'date_approved';
-  $dir = $_GET['dir'] ?? 'desc';
-  //8 lines below(including if stmnt-!in_array) is just extra step,if someone messes with querystring 
+  //lines below(including if stmnt-!in_array) is just extra step,if someone messes with querystring 
   // and types in some string in $order or $dir fields, it won't mess the page
-  $orderAllowed=['title','category','username','date_approved'];
-  $dirAllowed=['asc','desc'];
-  if(!in_array($order, $orderAllowed)) {
+  $orderAllowed = ['date_approved',
+                  'title',
+                  'category',
+                  'username'];
+  if (!in_array($order, $orderAllowed)) {
     $order = 'date_approved';
   }
-  if(!in_array($dir,$dirAllowed)) {
+  
+  $dir = $_GET['dir'] ?? 'desc';
+  $dirAllowed = ['asc', 'desc'];
+  if (!in_array($dir, $dirAllowed)) {
     $dir = 'asc';
   }
 
-  $offset = $_GET['offset'] ?? 0;
-  $offset = (int) $offset; //converts it to integer,So we can use === later in the code
-  $rowsToShow = 5;
   $dsn = 'mysql:host=localhost;dbname=poetree';
   $username = 'root';
   $password = 'pwdpwd';
@@ -27,52 +31,109 @@
           FROM poems p
           JOIN categories c ON c.category_id = p.category_id
           JOIN users u ON u.user_id = p.user_id
-          WHERE p.date_approved IS NOT NULL
-          ORDER BY $order $dir 
-          LIMIT $offset, $rowsToShow";
-  $stmt = $db->prepare($query);
-  $stmt->execute();
+          WHERE p.date_approved IS NOT NULL";
 
+
+  $selCatId = $_GET['cat'] ?? 0; // category_id
+  $selUserId = $_GET['user'] ?? 0; // user_id
+  $whereConditions = [];
+  $params = [];
+
+  if ($selCatId) {
+    $whereConditions[] = "c.category_id = ?";
+    $params[] = $selCatId;
+  }
+  
+  if ($selUserId) {
+    $whereConditions[] = "u.user_id = ?";
+    $params[] = $selUserId;
+  }
+
+  if ($whereConditions) {
+     //below converts it to : 'c.category_id = 5 AND u.user_id = 2' as Example
+    $where = implode($whereConditions, ' AND ');
+    //below is same as $query=$query .
+    $query .= ' AND ' . $where;
+  }
+
+  $query .= " ORDER BY  $order $dir
+          LIMIT $offset, $rowsToShow";
+
+  $stmt = $db->prepare($query);
+  $stmt->execute($params);
+
+  // Number of Poem logic 
   $qPoemCount = "SELECT COUNT(p.poem_id) AS num
   FROM poems p
     JOIN categories c ON c.category_id = p.category_id
     JOIN users u ON u.user_id = p.user_id
   WHERE p.date_approved IS NOT NULL";
 
+  if ($whereConditions) {
+    $where = implode($whereConditions, ' AND ');
+    $qPoemCount .= ' AND ' . $where;
+  }
+
   $stmtPoemCount = $db->prepare($qPoemCount);
-  $stmtPoemCount->execute();
+  $stmtPoemCount->execute($params);
   $poemCount = $stmtPoemCount->fetch()['num'];
 
   $prevOffset = max($offset - $rowsToShow, 0);
   $nextOffset = $offset + $rowsToShow;
+  // Number of Categories
+  $qCategories = "SELECT c.category_id, c.category,
+    COUNT(p.poem_id) AS num_poems
+  FROM categories c
+    JOIN poems p ON c.category_id = p.category_id
+  WHERE p.date_approved IS NOT NULL
+  GROUP BY c.category_id
+  ORDER BY c.category";
 
-  $href = "poems.php?"; 
+  $stmtCats = $db->prepare($qCategories);
+  $stmtCats->execute();
+
+  $qUsers = "SELECT u.user_id, u.username, 
+    COUNT(p.poem_id) AS num_poems
+  FROM users u
+    JOIN poems p ON u.user_id = p.user_id
+  WHERE p.date_approved IS NOT NULL
+  GROUP BY u.user_id
+  ORDER BY u.username";
+
+  $stmtUsers = $db->prepare($qUsers);
+  $stmtUsers->execute();
+
+  $href = "poems.php?cat=$selCatId&user=$selUserId&";
   $prev = $href . "offset=$prevOffset&order=$order&dir=$dir";
   $next = $href . "offset=$nextOffset&order=$order&dir=$dir";
 
-  /*CONSTRUCT THE LINKS FOR THE HEADERS */
-  //Default all directions to ascending
+  /* CONSTRUCT THE LINKS FOR THE HEADERS */
+
+  // Default all directions to ascending
   $dirTitle = 'asc';
   $dirCategory = 'asc';
   $dirUsername = 'asc';
   $dirPublished = 'asc';
-  if($dir ==='asc') {
+
+  // Prev,Next button logic,If the current direction is 'asc', switch the direction
+  //  for the header that is currently being sorted on
+  if ($dir === 'asc') {
     switch ($order) {
       case 'title':
         $dirTitle = 'desc';
         break;
       case 'category':
-        $dirCategory= 'desc';
+        $dirCategory = 'desc';
         break;
-      case  'username':
+      case 'username':
         $dirUsername = 'desc';
         break;
       case 'date_approved':
         $dirPublished = 'desc';
-        break;  
+        break;
     }
   }
-  $titleLink = $href . "order=title&dir=$dirTitle";//poems.php?order=title&dir=asc
+  $titleLink = $href . "order=title&dir=$dirTitle";
   $categoryLink = $href . "order=category&dir=$dirCategory";
   $usernameLink = $href . "order=username&dir=$dirUsername";
   $publishedLink = $href . "order=date_approved&dir=$dirPublished";
@@ -84,16 +145,16 @@
     <thead>
       <tr>
         <th>
-          <a href="<?=$titleLink ?>">Poems</a>
+          <a href="<?= $titleLink ?>">Poem</a>
         </th>
         <th>
-          <a href="<?=$categoryLink ?>">Category</a>
+          <a href="<?= $categoryLink ?>">Category</a>
         </th>
         <th>
-          <a href="<?=$usernameLink ?>">Author</a>
+          <a href="<?= $usernameLink ?>">Author</a>
         </th>
         <th>
-          <a href="<?=$publishedLink ?>">Published</a>
+          <a href="<?= $publishedLink ?>">Published</a>
         </th>
       </tr>
     </thead>
@@ -136,20 +197,39 @@
     </tfoot>
   </table>
   <h2>Filtering</h2>
+  <!--The form action will be poems.php for you.-->
   <form method="get" action="poems.php">
+    <input type="hidden" name="order" value="<?= $order ?>">
+    <input type="hidden" name="dir" value="<?= $dir ?>">
     <label for="cat">Category:</label>
     <select name="cat" id="cat">
       <option value="0">All</option>
-      <option value='2'>Funny (5)</option>
-      <option value='1'>Romantic (2)</option>
-      <option value='4'>Serious (1)</option>
+      <?php
+        while ($row = $stmtCats->fetch()) {
+          $category = $row['category'];
+          $numPoems = $row['num_poems'];
+          $categoryId = $row['category_id'];
+          $selected = $categoryId === $selCatId ? 'selected' : '';
+          echo "<option value='$categoryId' $selected>
+            $category ($numPoems)
+          </option>";
+        }
+      ?>
     </select>
     <label for="user">Author:</label>
     <select name="user" id="user">
       <option value="0">All</option>
-      <option value='3'>Dawnable (1)</option>
-      <option value='2'>HugHerHeart (2)</option>
-      <option value='1'>LimerickMan (5)</option>
+      <?php
+        while ($row = $stmtUsers->fetch()) {
+          $username = $row['username'];
+          $userId = $row['user_id'];
+          $numPoems = $row['num_poems'];
+          $selected = $userId === $selUserId ? 'selected' : '';
+          echo "<option value='$userId' $selected>
+            $username ($numPoems)
+          </option>";
+        }
+      ?>
     </select>
     <button name="filter" class="wide">Filter</button>
   </form>
